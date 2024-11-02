@@ -34,7 +34,7 @@ paths:
           name: matchingId
           required: true
           schema:
-            type: number
+            type: string
       responses:
         200:
           description: マッチング診断を始めるのに必要な情報の取得が成功する
@@ -66,7 +66,7 @@ paths:
                             type: object
                             properties:
                               choiceId:
-                                type: number
+                                type: string
                               choiceName:
                                 type: string
                               paramChanges:
@@ -94,7 +94,7 @@ paths:
                   type: object
                   properties:
                     choiceId:
-                      type: number
+                      type: string
                     value:
                       type: number
       responses:
@@ -105,7 +105,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  matchingTarget:
+                  recommend:
                     type: string
                   url:
                     type: string
@@ -129,8 +129,22 @@ paths:
                     type: array
                     items:
                       type: string
-                  url:
-                    type: string
+                  recommends:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        recommendText:
+                          type: string
+                        url:
+                          type: string
+                        recommendParams:
+                          type: object
+                          properties:
+                            paramsName:
+                              type: string
+                            value:
+                              type: number
                   createdAt:
                     type: string
                   questions:
@@ -146,7 +160,7 @@ paths:
                             type: object
                             properties:
                               choiceId:
-                                type: number
+                                type: string
                               choiceName:
                                 type: string
                               paramChanges:
