@@ -64,7 +64,7 @@ def lambda_handler(event, context):
             url = recommend.get('url')
             recommendParams = recommend.get('recommendParams', [])
 
-            question_table.put_item(
+            recommend_table.put_item(
                 Item={
                     'recommendId': recomnmend_id,
                     'matchingId': matching_id,
