@@ -80,7 +80,7 @@ paths:
                                       type: number
 
   /matching/result_output:
-    get:
+    post:
       summary: マッチング結果を取得
       requestBody:
         content:
