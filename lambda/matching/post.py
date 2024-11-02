@@ -35,18 +35,18 @@ def lambda_handler(event, context):
         if not all([id, title, user_name, description, params_name, questions]):
             raise ValueError("All fields (id, title, userName, description, paramsName, questions) are required in the request body")
 
-        matching_id = uuid.uuid4()
+        matching_id = str(uuid.uuid4())
         question_ids = []
 
         # DynamoDBにデータを保存
         for question in questions:
-            question_id = uuid.uuid4()
+            question_id = str(uuid.uuid4())
             question_text = question.get('question')
             choices = question.get('choices', [])
 
             question_table.put_item(
                 Item={
-                    'questionId': uuid.uuid4(),
+                    'questionId': question_id,
                     'matchingId': matching_id,
                     'questionText': question_text,
                     'choices': choices,
@@ -59,14 +59,14 @@ def lambda_handler(event, context):
         recommend_ids = []
 
         for recommend in recommends:
-            recomnmend_id = uuid.uuid4()
+            recomnmend_id = str(uuid.uuid4())
             recommend_text = recommend.get('recommend_ids')
             url = recommend.get('url')
             recommendParams = recommend.get('recommendParams', [])
 
             question_table.put_item(
                 Item={
-                    'recommendId': uuid.uuid4(),
+                    'recommendId': recomnmend_id,
                     'matchingId': matching_id,
                     'recommendText': recommend_text,
                     'url': url,
