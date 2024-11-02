@@ -110,7 +110,6 @@ paths:
                   url:
                     type: string
 
-
   /matching/post:
     post:
       summary: マッチングに必要な情報の登録
