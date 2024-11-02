@@ -83,7 +83,7 @@ export class Gikusai20241029Stack extends cdk.Stack {
       }
     );
 
-    // matching/list
+    // matching/match
     const MatchingMatchLambda = new lambda.Function(
       this,
       "MatchingMatchLambdaFunction",
@@ -99,7 +99,23 @@ export class Gikusai20241029Stack extends cdk.Stack {
       }
     );
 
-    // matching/list
+    // matching/result_output
+    const MatchingResultOutputLambda = new lambda.Function(
+      this,
+      "MatchingResultOutputLambdaFunction",
+      {
+        runtime: lambda.Runtime.PYTHON_3_11,
+        handler: "result_output.lambda_handler",
+        code: lambda.Code.fromAsset(path.join(__dirname, "../lambda/matching")),
+        role: lambdaExecutionRole,
+        timeout: cdk.Duration.seconds(30),
+        environment: {
+          TABLE_NAME: table.tableName, // 環境変数にDynamoDBテーブル名を設定
+        },
+      }
+    );
+
+    // matching/post
     const MatchingPostLambda = new lambda.Function(
       this,
       "MatchingPostLambdaFunction",
@@ -198,6 +214,42 @@ export class Gikusai20241029Stack extends cdk.Stack {
       new apigateway.LambdaIntegration(MatchingMatchLambda)
     ); // POSTメソッドを追加
     matchingMatchResource.addMethod(
+      "OPTIONS",
+      new apigateway.MockIntegration({
+        integrationResponses: [
+          {
+            statusCode: "200",
+            responseParameters: {
+              "method.response.header.Access-Control-Allow-Origin": "'*'",
+              "method.response.header.Access-Control-Allow-Methods":
+                "'OPTIONS,GET'",
+              "method.response.header.Access-Control-Allow-Headers":
+                "'Content-Type'",
+            },
+          },
+        ],
+        passthroughBehavior: apigateway.PassthroughBehavior.NEVER,
+      }),
+      {
+        methodResponses: [
+          {
+            statusCode: "200",
+            responseParameters: {
+              "method.response.header.Access-Control-Allow-Origin": true,
+              "method.response.header.Access-Control-Allow-Methods": true,
+              "method.response.header.Access-Control-Allow-Headers": true,
+            },
+          },
+        ],
+      }
+    );
+
+    const matchingResultOutputResource = matchingResource.addResource("result_output");
+    matchingResultOutputResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(MatchingResultOutputLambda)
+    );
+    matchingResultOutputResource.addMethod(
       "OPTIONS",
       new apigateway.MockIntegration({
         integrationResponses: [
