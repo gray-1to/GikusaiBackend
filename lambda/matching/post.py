@@ -9,7 +9,7 @@ def lambda_handler(event, context):
         # DynamoDBテーブル名を環境変数から取得
         matching_table_name = os.environ.get('MATCHING_TABLE_NAME')
         question_table_name = os.environ.get('QUESTION_TABLE_NAME')
-        recommend_table_name = os.environ.get('RECOMMEND_TABLE_NAME')  # Corrected from QUESTION_TABLE_NAME
+        recommend_table_name = os.environ.get('RECOMMEND_TABLE_NAME')
 
         if not matching_table_name:
             raise ValueError("MATCHING_TABLE_NAME environment variable is missing")
@@ -28,12 +28,12 @@ def lambda_handler(event, context):
         user_name = body.get('userName')
         description = body.get('description')
         params_name = body.get('paramsName')
-        url = body.get('url')
         questions = body.get('questions')
+        recommends = body.get('recommends')
 
         # 必須フィールドの確認
-        if not all([id, title, user_name, description, params_name, url, questions]):
-            raise ValueError("All fields (id, title, userName, description, paramsName, url, questions) are required in the request body")
+        if not all([id, title, user_name, description, params_name, questions]):
+            raise ValueError("All fields (id, title, userName, description, paramsName, questions) are required in the request body")
 
         matching_id = uuid.uuid4()
         question_ids = []
@@ -56,15 +56,36 @@ def lambda_handler(event, context):
 
             question_ids.append(question_id)
 
+        recommend_ids = []
+
+        for recommend in recommends:
+            recomnmend_id = uuid.uuid4()
+            recommend_text = recommend.get('recommend_ids')
+            url = recommend.get('url')
+            recommendParams = recommend.get('recommendParams', [])
+
+            question_table.put_item(
+                Item={
+                    'recommendId': uuid.uuid4(),
+                    'matchingId': matching_id,
+                    'recommendText': recommend_text,
+                    'url': url,
+                    'recommendParams': recommendParams,
+                    'createdAt': time.time()
+                }
+            )
+
+            recommend_ids.append(recomnmend_id)
+
         matching_table.put_item(
             Item={
                 'matchingId': matching_id,
+                'recommendIds': recommend_ids,
+                'questionIds': question_ids,
                 'title': title,
                 'authorName': user_name,
                 'description': description,
                 'parameters': params_name,
-                'url': url,
-                'questionIds': question_ids,
                 'createdAt': time.time()
             }
         )
