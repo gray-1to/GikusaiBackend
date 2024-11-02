@@ -9,7 +9,7 @@ def lambda_handler(event, context):
     table = dynamodb.Table(table_name)
 
     # イベントからデータを取得
-    body = json.loads(event['body'])
+    # body = json.loads(event['body'])
     id = "test_id"
     data = "test_data"
 
