@@ -29,14 +29,12 @@ paths:
   /matching/match:
     get:
       summary: マッチング診断を始めるのに必要な情報の取得
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                matchingId:
-                  type: string
+      parameters:
+        - in: query
+          name: matchingId
+          required: true
+          schema:
+            type: number
       responses:
         200:
           description: マッチング診断を始めるのに必要な情報の取得が成功する
