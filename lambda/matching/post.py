@@ -50,7 +50,7 @@ def lambda_handler(event, context):
                     'matchingId': matching_id,
                     'questionText': question_text,
                     'choices': choices,
-                    'createdAt': time.time()
+                    'createdAt': int(time.time())
                 }
             )
 
@@ -71,7 +71,7 @@ def lambda_handler(event, context):
                     'recommendText': recommend_text,
                     'url': url,
                     'recommendParams': recommendParams,
-                    'createdAt': time.time()
+                    'createdAt': int(time.time())
                 }
             )
 
@@ -86,7 +86,7 @@ def lambda_handler(event, context):
                 'authorName': user_name,
                 'description': description,
                 'parameters': params_name,
-                'createdAt': time.time()
+                'createdAt': int(time.time())
             }
         )
 
