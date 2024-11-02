@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Selectra サーバーサイドAPI定義書
-  version: 0.1.1
+  version: 0.2.1
 paths:
   /matching/list:
     get:
@@ -80,7 +80,7 @@ paths:
                                       type: number
 
   /matching/result_output:
-    post:
+    get:
       summary: マッチング結果を取得
       requestBody:
         content:
@@ -130,6 +130,8 @@ paths:
                     items:
                       type: string
                   url:
+                    type: string
+                  createdAt:
                     type: string
                   questions:
                     type: array
