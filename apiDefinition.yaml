@@ -62,24 +62,24 @@ paths:
                       properties:
                         question:
                           type: string
-                        choice:
-                          type: object
-                          properties:
-                            choiceId:
-                              type: number
-                            choiceName:
-                              type: string
-                            paramChanges:
-                              type: array
-                              items:
-                                type: object
-                                properties:
-                                  targetParam:
-                                    type: string
-                                  changeValues:
-                                    type: array
-                                    items:
+                        choices:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              choiceId:
+                                type: number
+                              choiceName:
+                                type: string
+                              paramChanges:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    targetParamName:
                                       type: string
+                                    changeValues:
+                                      type: number
 
   /matching/result_output:
     get:
@@ -141,22 +141,24 @@ paths:
                       properties:
                         question:
                           type: string
-                        choice:
-                          type: object
-                          properties:
-                            choiceName:
-                              type: string
-                            paramChanges:
-                              type: array
-                              items:
-                                type: object
-                                properties:
-                                  targetParam:
-                                    type: string
-                                  changeValues:
-                                    type: array
-                                    items:
+                        choices:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              choiceId:
+                                type: number
+                              choiceName:
+                                type: string
+                              paramChanges:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    targetParamName:
                                       type: string
+                                    changeValues:
+                                      type: number
       responses:
         200:
           description: マッチングに必要な情報の投稿成功
