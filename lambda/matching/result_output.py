@@ -2,6 +2,11 @@ import json
 import boto3
 import os
 from decimal import Decimal
+import math
+
+def euclidean_distance(arr1, arr2):
+    # ユークリッド距離を計算
+    return math.sqrt(sum((a - b) ** 2 for a, b in zip(arr1, arr2)))
 
 
 def decimal_to_float(obj):
@@ -14,65 +19,65 @@ def decimal_to_float(obj):
     return obj
 
 def lambda_handler(event, context):
-    try:
-        # DynamoDBテーブル名を環境変数から取得
-        matching_table_name = os.environ.get('MATCHING_TABLE_NAME')
-        question_table_name = os.environ.get('QUESTION_TABLE_NAME')
-        recommend_table_name = os.environ.get('QUESTION_TABLE_NAME')
-        if not matching_table_name:
-            raise ValueError("TABLE_NAME environment variable is missing")
+    # DynamoDBテーブル名を環境変数から取得
+    matching_table_name = os.environ.get('MATCHING_TABLE_NAME')
+    recommend_table_name = os.environ.get('RECOMMEND_TABLE_NAME')
+    if not matching_table_name:
+        raise ValueError("TABLE_NAME environment variable is missing")
 
-        dynamodb = boto3.resource('dynamodb')
-        table = dynamodb.Table(matching_table_name)
+    dynamodb = boto3.resource('dynamodb')
+    matching_table = dynamodb.Table(matching_table_name)
+    recommend_table = dynamodb.Table(recommend_table_name)
 
-        # イベントからデータを取得
-        if 'body' not in event:
-            raise ValueError("Request body is missing")
+    body = json.loads(event['body'])
+    matching_id = body.get('matchingId')
+    choice_params = body.get('choiceParams')
+    param_to_choice_value = { choice_param['choiceId']: choice_param['value'] for choice_param in choice_params}
 
-        body = json.loads(event['body'])
-        id = body.get('id')
+    print('choice_params', choice_params)
 
-        if not id:
-            raise ValueError("Both 'id' and 'data' fields are required in the request body")
+    if matching_id is None or choice_params is None:
+        raise ValueError("Both 'matchingId' and 'choiceParams' fields are required in the request body")
 
 
-        # DynamoDBから指定されたidに基づいてデータを取得
-        response = table.query(
-            KeyConditionExpression=boto3.dynamodb.conditions.Key('matchingId').eq(id)
+    # DynamoDBから指定されたidに基づいてデータを取得
+    response = matching_table.query(
+        KeyConditionExpression=boto3.dynamodb.conditions.Key('matchingId').eq(matching_id)
+    )
+    items = response.get('Items')
+    print("items", items)
+    recommend_ids: list[str] = items[0]['recommendIds']
+    params = items[0]['parameters']
+    choice_vector = [param_to_choice_value.get(param, 0) for param in params]
+
+    min_distance = float('inf')
+    nearest_recommend = None
+    for recommend_id in recommend_ids:
+        print("recommend_id",recommend_id)
+        response = recommend_table.query(
+            KeyConditionExpression=boto3.dynamodb.conditions.Key('recommendId').eq(recommend_id)
         )
-        items = response.get('Items')
-        # Decimalオブジェクトをfloatに変換
-        items = decimal_to_float(items)
+        recommends = response.get('Items')
+        recommend = recommends[0] if recommends else None
+        if recommend is None:
+            continue
+        recommend_params = recommend['recommendParams']
+        recommend_params_to_value = { recommend_param['paramsName']: float(recommend_param['value']) for recommend_param in recommend_params}
+        recommend_vector = [recommend_params_to_value.get(param, 0) for param in params]
+        
+        print("choice_vector", choice_vector)
+        print("recommend_vector", recommend_vector)
+        distance = euclidean_distance(choice_vector, recommend_vector)
+        if distance < min_distance:
+            min_distance = distance
+            nearest_recommend = recommend
 
-
-        # 該当データが存在しない場合
-        if not items:
-            return {
-                'statusCode': 404,
-                'body': json.dumps({'error': 'Item not found'})
-            }
-
-        # 該当データが存在する場合
-        return {
-            'statusCode': 200,
-            'body': json.dumps({'item': items})
-        }
-
-    except ValueError as ve:
-        # 入力データが不足している場合のエラーハンドリング
-        return {
-            'statusCode': 400,
-            'body': json.dumps({'error': str(ve)})
-        }
-    except json.JSONDecodeError:
-        # JSONデコードエラーの場合
-        return {
-            'statusCode': 400,
-            'body': json.dumps({'error': 'Invalid JSON format in request body'})
-        }
-    except Exception as e:
-        # その他のエラーの場合
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'error': 'An unexpected error occurred: ' + str(e)})
-        }
+    result = {
+        "recommend": nearest_recommend["recommendText"],
+        "url": nearest_recommend["url"]
+    }
+    
+    return {
+        'statusCode': 200,
+        'body': json.dumps(result)
+    }
