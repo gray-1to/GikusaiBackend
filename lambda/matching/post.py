@@ -1,16 +1,20 @@
 import json
 import boto3
 import os
+import time
 
 def lambda_handler(event, context):
     try:
         # DynamoDBテーブル名を環境変数から取得
-        table_name = os.environ.get('TABLE_NAME')
-        if not table_name:
-            raise ValueError("TABLE_NAME environment variable is missing")
+        matching_table_name = os.environ.get('MATCHING_TABLE_NAME')
+        question_table_name = os.environ.get('QUESTION_TABLE_NAME')
+        recommend_table_name = os.environ.get('QUESTION_TABLE_NAME')
+
+        if not matching_table_name:
+            raise ValueError("MATCHING_TABLE_NAME environment variable is missing")
 
         dynamodb = boto3.resource('dynamodb')
-        table = dynamodb.Table(table_name)
+        table = dynamodb.Table(matching_table_name)
 
         # イベントからデータを取得
         if 'body' not in event:
@@ -26,8 +30,9 @@ def lambda_handler(event, context):
         # DynamoDBにデータを保存
         table.put_item(
             Item={
-                'id': id,
+                'matchingId': id,
                 'data': data,
+                'createdAt': int(time.time())
             }
         )
 

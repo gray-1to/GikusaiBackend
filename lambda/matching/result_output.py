@@ -1,16 +1,29 @@
 import json
 import boto3
 import os
+from decimal import Decimal
+
+
+def decimal_to_float(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    if isinstance(obj, list):
+        return [decimal_to_float(item) for item in obj]
+    if isinstance(obj, dict):
+        return {key: decimal_to_float(value) for key, value in obj.items()}
+    return obj
 
 def lambda_handler(event, context):
     try:
         # DynamoDBテーブル名を環境変数から取得
-        table_name = os.environ.get('TABLE_NAME')
-        if not table_name:
+        matching_table_name = os.environ.get('MATCHING_TABLE_NAME')
+        question_table_name = os.environ.get('QUESTION_TABLE_NAME')
+        recommend_table_name = os.environ.get('QUESTION_TABLE_NAME')
+        if not matching_table_name:
             raise ValueError("TABLE_NAME environment variable is missing")
 
         dynamodb = boto3.resource('dynamodb')
-        table = dynamodb.Table(table_name)
+        table = dynamodb.Table(matching_table_name)
 
         # イベントからデータを取得
         if 'body' not in event:
@@ -24,11 +37,16 @@ def lambda_handler(event, context):
 
 
         # DynamoDBから指定されたidに基づいてデータを取得
-        response = table.get_item(Key={'id': id})
-        item = response.get('Item')
+        response = table.query(
+            KeyConditionExpression=boto3.dynamodb.conditions.Key('matchingId').eq(id)
+        )
+        items = response.get('Items')
+        # Decimalオブジェクトをfloatに変換
+        items = decimal_to_float(items)
+
 
         # 該当データが存在しない場合
-        if not item:
+        if not items:
             return {
                 'statusCode': 404,
                 'body': json.dumps({'error': 'Item not found'})
@@ -37,7 +55,7 @@ def lambda_handler(event, context):
         # 該当データが存在する場合
         return {
             'statusCode': 200,
-            'body': json.dumps({'item': item})
+            'body': json.dumps({'item': items})
         }
 
     except ValueError as ve:
