@@ -26,13 +26,23 @@ def lambda_handler(event, context):
         # Decimalオブジェクトをfloatに変換
         items = decimal_to_float(items)
 
+        matching_list = []
+        for item in items:
+            matching_data = {
+                'matchingId': item.get('matchingId', ''),
+                'title': item.get('title', ''),
+                'description': item.get('description', ''),
+                'createdAt': item.get('createdAt', ''),
+                'authorName': item.get('authorName', '')
+            }
+            matching_list.append(matching_data)
+
         return {
             'statusCode': 200,
-            'body': json.dumps({'items': items})
+            'body': json.dumps(matching_list)
         }
     except Exception as e:
         return {
             'statusCode': 500,
             'body': json.dumps({'error': str(e)})
         }
-
