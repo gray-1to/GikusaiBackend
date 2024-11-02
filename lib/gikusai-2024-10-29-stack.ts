@@ -16,8 +16,48 @@ export class Gikusai20241029Stack extends cdk.Stack {
     super(scope, id, props);
 
     // DynamoDBテーブルを作成
-    const table = new dynamodb.Table(this, "HelloTable", {
-      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING }, // 主キーを定義
+    const matchingTable = new dynamodb.Table(this, "MatchingTable", {
+      tableName: "matching-table", // テーブル名の定義
+      partitionKey: {
+        //パーティションキーの定義
+        name: "matchingId",
+        type: dynamodb.AttributeType.STRING, // typeはあとNumberとbinary
+      },
+      sortKey: {
+        // ソートキーの定義
+        name: "createdAt",
+        type: dynamodb.AttributeType.NUMBER,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST, // オンデマンド請求
+      pointInTimeRecovery: true, // PITRを有効化
+      timeToLiveAttribute: "expired", // TTLの設定
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // cdk destroyでDB削除可
+    });
+
+    const questionTable = new dynamodb.Table(this, "QuestionTable", {
+      tableName: "question-table", // テーブル名の定義
+      partitionKey: {
+        //パーティションキーの定義
+        name: "questionId",
+        type: dynamodb.AttributeType.STRING, // typeはあとNumberとbinary
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST, // オンデマンド請求
+      pointInTimeRecovery: true, // PITRを有効化
+      timeToLiveAttribute: "expired", // TTLの設定
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // cdk destroyでDB削除可
+    });
+
+    const recommendTable = new dynamodb.Table(this, "RecommendTable", {
+      tableName: "recommend-table", // テーブル名の定義
+      partitionKey: {
+        //パーティションキーの定義
+        name: "recommendId",
+        type: dynamodb.AttributeType.STRING, // typeはあとNumberとbinary
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST, // オンデマンド請求
+      pointInTimeRecovery: true, // PITRを有効化
+      timeToLiveAttribute: "expired", // TTLの設定
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // cdk destroyでDB削除可
     });
 
     // Lambda実行に必要なIAMロールを作成
@@ -51,22 +91,11 @@ export class Gikusai20241029Stack extends cdk.Stack {
           "dynamodb:Scan",
         ],
         effect: Effect.ALLOW,
-        resources: [table.tableArn],
+        resources: [matchingTable.tableArn, questionTable.tableArn, recommendTable.tableArn],
       })
     );
 
     // Lambda関数を定義
-    const helloLambda = new lambda.Function(this, "HelloLambdaFunction", {
-      runtime: lambda.Runtime.PYTHON_3_11,
-      handler: "hello.lambda_handler",
-      code: lambda.Code.fromAsset(path.join(__dirname, "../lambda")),
-      role: lambdaExecutionRole,
-      timeout: cdk.Duration.seconds(30),
-      environment: {
-        TABLE_NAME: table.tableName, // 環境変数にDynamoDBテーブル名を設定
-      },
-    });
-
     // matching/list
     const MatchingListLambda = new lambda.Function(
       this,
@@ -78,7 +107,7 @@ export class Gikusai20241029Stack extends cdk.Stack {
         role: lambdaExecutionRole,
         timeout: cdk.Duration.seconds(30),
         environment: {
-          TABLE_NAME: table.tableName, // 環境変数にDynamoDBテーブル名を設定
+          MATCHING_TABLE_NAME: matchingTable.tableName,
         },
       }
     );
@@ -94,7 +123,9 @@ export class Gikusai20241029Stack extends cdk.Stack {
         role: lambdaExecutionRole,
         timeout: cdk.Duration.seconds(30),
         environment: {
-          TABLE_NAME: table.tableName, // 環境変数にDynamoDBテーブル名を設定
+          MATCHING_TABLE_NAME: matchingTable.tableName,
+          QUESTION_TABLE_NAME: questionTable.tableName,
+          RECOMMEND_TABLE_NAME: recommendTable.tableName,
         },
       }
     );
@@ -110,7 +141,9 @@ export class Gikusai20241029Stack extends cdk.Stack {
         role: lambdaExecutionRole,
         timeout: cdk.Duration.seconds(30),
         environment: {
-          TABLE_NAME: table.tableName, // 環境変数にDynamoDBテーブル名を設定
+          MATCHING_TABLE_NAME: matchingTable.tableName,
+          QUESTION_TABLE_NAME: questionTable.tableName,
+          RECOMMEND_TABLE_NAME: recommendTable.tableName,
         },
       }
     );
@@ -126,15 +159,16 @@ export class Gikusai20241029Stack extends cdk.Stack {
         role: lambdaExecutionRole,
         timeout: cdk.Duration.seconds(30),
         environment: {
-          TABLE_NAME: table.tableName, // 環境変数にDynamoDBテーブル名を設定
+          MATCHING_TABLE_NAME: matchingTable.tableName,
+          QUESTION_TABLE_NAME: questionTable.tableName,
+          RECOMMEND_TABLE_NAME: recommendTable.tableName,
         },
       }
     );
 
     // API Gatewayを作成してLambda関数を統合
-    const api = new apigateway.LambdaRestApi(this, "HelloLambdaApi", {
-      handler: helloLambda,
-      proxy: false,
+    const api = new apigateway.RestApi(this, "GikusaiLambdaApi", {
+      restApiName: 'GikusaiAPIGateway',
     });
 
     // リソースとメソッドを追加
@@ -176,7 +210,7 @@ export class Gikusai20241029Stack extends cdk.Stack {
     matchingListResource.addMethod(
       "GET",
       new apigateway.LambdaIntegration(MatchingListLambda)
-    ); // POSTメソッドを追加
+    );
     matchingListResource.addMethod(
       "OPTIONS",
       new apigateway.MockIntegration({
@@ -212,7 +246,7 @@ export class Gikusai20241029Stack extends cdk.Stack {
     matchingMatchResource.addMethod(
       "GET",
       new apigateway.LambdaIntegration(MatchingMatchLambda)
-    ); // POSTメソッドを追加
+    );
     matchingMatchResource.addMethod(
       "OPTIONS",
       new apigateway.MockIntegration({
@@ -322,8 +356,14 @@ export class Gikusai20241029Stack extends cdk.Stack {
     });
 
     // DynamoDBテーブルの出力
-    new cdk.CfnOutput(this, "DynamoDBTableName", {
-      value: table.tableName,
+    new cdk.CfnOutput(this, "DynamoDBMatchingTableName", {
+      value: matchingTable.tableName,
+    });
+    new cdk.CfnOutput(this, "DynamoDBQuestionTableName", {
+      value: questionTable.tableName,
+    });
+    new cdk.CfnOutput(this, "DynamoDBRecommendTableName", {
+      value: recommendTable.tableName,
     });
   }
 }
