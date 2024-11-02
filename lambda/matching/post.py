@@ -2,37 +2,70 @@ import json
 import boto3
 import os
 import time
+import uuid
 
 def lambda_handler(event, context):
     try:
         # DynamoDBテーブル名を環境変数から取得
         matching_table_name = os.environ.get('MATCHING_TABLE_NAME')
         question_table_name = os.environ.get('QUESTION_TABLE_NAME')
-        recommend_table_name = os.environ.get('QUESTION_TABLE_NAME')
+        recommend_table_name = os.environ.get('RECOMMEND_TABLE_NAME')  # Corrected from QUESTION_TABLE_NAME
 
         if not matching_table_name:
             raise ValueError("MATCHING_TABLE_NAME environment variable is missing")
 
         dynamodb = boto3.resource('dynamodb')
-        table = dynamodb.Table(matching_table_name)
+        matching_table = dynamodb.Table(matching_table_name)
+        question_table = dynamodb.Table(question_table_name)
+        recommend_table = dynamodb.Table(recommend_table_name)
 
         # イベントからデータを取得
         if 'body' not in event:
             raise ValueError("Request body is missing")
 
         body = json.loads(event['body'])
-        id = body.get('id')
-        data = body.get('data')
+        title = body.get('title')
+        user_name = body.get('userName')
+        description = body.get('description')
+        params_name = body.get('paramsName')
+        url = body.get('url')
+        questions = body.get('questions')
 
-        if not id or not data:
-            raise ValueError("Both 'id' and 'data' fields are required in the request body")
+        # 必須フィールドの確認
+        if not all([id, title, user_name, description, params_name, url, questions]):
+            raise ValueError("All fields (id, title, userName, description, paramsName, url, questions) are required in the request body")
+
+        matching_id = uuid.uuid4()
+        question_ids = []
 
         # DynamoDBにデータを保存
-        table.put_item(
+        for question in questions:
+            question_id = uuid.uuid4()
+            question_text = question.get('question')
+            choices = question.get('choices', [])
+
+            question_table.put_item(
+                Item={
+                    'questionId': uuid.uuid4(),
+                    'matchingId': matching_id,
+                    'questionText': question_text,
+                    'choices': choices,
+                    'createdAt': time.time()
+                }
+            )
+
+            question_ids.append(question_id)
+
+        matching_table.put_item(
             Item={
-                'matchingId': id,
-                'data': data,
-                'createdAt': int(time.time())
+                'matchingId': matching_id,
+                'title': title,
+                'authorName': user_name,
+                'description': description,
+                'parameters': params_name,
+                'url': url,
+                'questionIds': question_ids,
+                'createdAt': time.time()
             }
         )
 
