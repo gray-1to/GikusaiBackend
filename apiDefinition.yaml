@@ -1,14 +1,14 @@
 openapi: 3.0.3
 info:
   title: Selectra サーバーサイドAPI定義書
-  version: 0.0.1
+  version: 0.1.1
 paths:
   /matching/list:
     get:
-      summary: マッチング投稿一覧に必要な情報の取得
+      summary: マッチング診断の一覧に必要な情報の取得
       responses:
         200:
-          description: マッチング投稿一覧に必要な情報の取得成功
+          description: マッチング診断の一覧に必要な情報の取得が成功する
           content:
             application/json:
               schema:
@@ -24,11 +24,11 @@ paths:
                       type: string
                     createdAt:
                       type: string
-                    authorName:
+                    userName:
                       type: string
   /matching/match:
     get:
-      summary: マッチングに必要な情報の取得
+      summary: マッチング診断を始めるのに必要な情報の取得
       requestBody:
         content:
           application/json:
@@ -39,7 +39,7 @@ paths:
                   type: string
       responses:
         200:
-          description: マッチングに必要な情報の取得成功
+          description: マッチング診断を始めるのに必要な情報の取得が成功する
           content:
             application/json:
               schema:
@@ -47,11 +47,11 @@ paths:
                 properties:
                   title:
                     type: string
-                  authorName:
+                  userName:
                     type: string
                   description:
                     type: string
-                  params:
+                  paramsName:
                     type: array
                     items:
                       type: string
@@ -65,7 +65,9 @@ paths:
                         choice:
                           type: object
                           properties:
-                            text:
+                            choiceId:
+                              type: number
+                            choiceName:
                               type: string
                             paramChanges:
                               type: array
@@ -74,19 +76,43 @@ paths:
                                 properties:
                                   targetParam:
                                     type: string
-                                  changeValue:
-                                    type: number
-                  matchingRule:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        highestParam: 
-                          type: string
-                        result:
-                          type: string
-                        url:
-                          type: string
+                                  changeValues:
+                                    type: array
+                                    items:
+                                      type: string
+
+  /matching/result_output:
+    get:
+      summary: マッチング結果を取得
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                matchingId:
+                  type: string
+                choiceParams:
+                  type: object
+                  properties:
+                    choiceId:
+                      type: number
+                    value:
+                      type: number
+      responses:
+        200:
+          description: マッチング結果の取得に成功する
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matchingTarget:
+                    type: string
+                  url:
+                    type: string
+
+
   /matching/post:
     post:
       summary: マッチングに必要な情報の登録
@@ -98,14 +124,16 @@ paths:
                 properties:
                   title:
                     type: string
-                  authorName:
+                  userName:
                     type: string
                   description:
                     type: string
-                  params:
+                  paramsName:
                     type: array
                     items:
                       type: string
+                  url:
+                    type: string
                   questions:
                     type: array
                     items:
@@ -116,7 +144,7 @@ paths:
                         choice:
                           type: object
                           properties:
-                            text:
+                            choiceName:
                               type: string
                             paramChanges:
                               type: array
@@ -125,19 +153,10 @@ paths:
                                 properties:
                                   targetParam:
                                     type: string
-                                  changeValue:
-                                    type: number
-                  matchingRule:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        highestParam: 
-                          type: string
-                        result:
-                          type: string
-                        url:
-                          type: string
+                                  changeValues:
+                                    type: array
+                                    items:
+                                      type: string
       responses:
         200:
           description: マッチングに必要な情報の投稿成功
