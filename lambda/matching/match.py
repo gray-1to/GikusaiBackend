@@ -16,7 +16,8 @@ def lambda_handler(event, context):
     matching_table_name = os.environ['MATCHING_TABLE_NAME']
     question_table_name = os.environ['QUESTION_TABLE_NAME']
     dynamodb = boto3.resource('dynamodb')
-    table = dynamodb.Table(matching_table_name)
+    matching_table = dynamodb.Table(matching_table_name)
+    question_table = dynamodb.Table(question_table_name)
 
     try:
         id = event.get('queryStringParameters', {}).get('id')
@@ -27,23 +28,50 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'id is required in the request body'})
             }
 
-        response = table.query(
+        matching_table_response = matching_table.query(
             KeyConditionExpression=boto3.dynamodb.conditions.Key('matchingId').eq(id)
         )
-        items = response.get('Items')
-        item = items[0] if items else None
+        matchings = matching_table_response.get('Items')
+        matching = matchings[0] if matchings else None
 
-        if not item:
+        if not matching:
             return {
                 'statusCode': 404,
-                'body': json.dumps({'error': 'Item not found'})
+                'body': json.dumps({'error': 'Matching item not found'})
             }
 
-        item = decimal_to_float(item)
+        question_ids = matching.get('questionIds', [])
+        question_list = []
+        for question_id in question_ids:
+            question_table_response = question_table.query(
+                KeyConditionExpression=boto3.dynamodb.conditions.Key('questionId').eq(question_id)
+            )
+            questions = question_table_response.get('Items')
+            question = questions[0] if questions else None
+
+            if question:
+                question_for_res = {
+                    "question": question.get("questionText", "No question text available"),
+                    "choices": question.get("choices", [])
+                }
+                question_list.append(question_for_res)
+            else:
+                print(f"Warning: No question found for questionId {question_id}")
+
+        matching = decimal_to_float(matching)
+        question_list = decimal_to_float(question_list)
+
+        result = {
+            "title": matching["title"],
+            "userName": matching["authorName"],
+            "description": matching["description"],
+            "paramsName": matching["parameters"],
+            "questions": question_list
+        }
 
         return {
             'statusCode': 200,
-            'body': json.dumps({'item': item})
+            'body': json.dumps(result)
         }
     except Exception as e:
         return {
