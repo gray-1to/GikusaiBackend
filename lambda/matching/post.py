@@ -25,15 +25,15 @@ def lambda_handler(event, context):
 
         body = json.loads(event['body'])
         title = body.get('title')
-        user_name = body.get('userName')
+        author_name = body.get('authorName')
         description = body.get('description')
         params_name = body.get('paramsName')
         questions = body.get('questions')
         recommends = body.get('recommends')
 
         # 必須フィールドの確認
-        if not all([id, title, user_name, description, params_name, questions]):
-            raise ValueError("All fields (id, title, userName, description, paramsName, questions) are required in the request body")
+        if not all([id, title, author_name, description, params_name, questions]):
+            raise ValueError("All fields (id, title, authorName, description, paramsName, questions) are required in the request body")
 
         matching_id = str(uuid.uuid4())
         question_ids = []
@@ -60,7 +60,7 @@ def lambda_handler(event, context):
 
         for recommend in recommends:
             recomnmend_id = str(uuid.uuid4())
-            recommend_text = recommend.get('recommend_ids')
+            recommend_text = recommend.get('recommendText')
             url = recommend.get('url')
             recommendParams = recommend.get('recommendParams', [])
 
@@ -83,7 +83,7 @@ def lambda_handler(event, context):
                 'recommendIds': recommend_ids,
                 'questionIds': question_ids,
                 'title': title,
-                'authorName': user_name,
+                'authorName': author_name,
                 'description': description,
                 'parameters': params_name,
                 'createdAt': int(time.time())
