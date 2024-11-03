@@ -63,7 +63,7 @@ def lambda_handler(event, context):
 
         result = {
             "title": matching["title"],
-            "userName": matching["authorName"],
+            "authorName": matching["authorName"],
             "description": matching["description"],
             "paramsName": matching["parameters"],
             "questions": question_list
